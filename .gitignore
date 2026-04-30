@@ -1,0 +1,11 @@
+# Foundry (sc/)
+sc/lib/
+sc/cache/
+sc/out/
+sc/broadcast/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
