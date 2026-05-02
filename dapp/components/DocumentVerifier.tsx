@@ -53,11 +53,11 @@ export function DocumentVerifier() {
       <FileUploader onFileHashed={handleFileHashed} />
 
       {result.kind === "checking" && (
-        <p className="text-sm text-gray-500">Consultando blockchain...</p>
+        <p className="text-sm text-muted-foreground">Consultando blockchain...</p>
       )}
 
       {result.kind === "not-found" && (
-        <div className="text-sm bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 p-3 rounded-md">
+        <div className="text-sm bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 p-3 rounded-md">
           <div className="font-semibold text-amber-800 dark:text-amber-300">
             Documento no registrado
           </div>
@@ -71,15 +71,15 @@ export function DocumentVerifier() {
         <div
           className={`text-sm border p-3 rounded-md space-y-2 ${
             result.signatureValid
-              ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
-              : "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800"
+              ? "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900"
+              : "bg-destructive/10 border-destructive/30"
           }`}
         >
           <div
             className={`font-semibold ${
               result.signatureValid
                 ? "text-green-800 dark:text-green-300"
-                : "text-red-800 dark:text-red-300"
+                : "text-destructive"
             }`}
           >
             {result.signatureValid
@@ -106,7 +106,7 @@ export function DocumentVerifier() {
       )}
 
       {result.kind === "error" && (
-        <div className="text-sm bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-3 rounded-md text-red-800 dark:text-red-300">
+        <div className="text-sm bg-destructive/10 border border-destructive/30 p-3 rounded-md text-destructive">
           ✗ {result.message}
         </div>
       )}
