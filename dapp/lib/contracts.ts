@@ -2,10 +2,9 @@ import { sepolia, baseSepolia } from "wagmi/chains";
 import type { Address } from "viem";
 
 // Mapping chainId -> direccion del DocumentRegistry deployado en esa red.
-// Cuando deployemos a Base Sepolia (Fase 2b), reemplazar el placeholder.
 export const DOCUMENT_REGISTRY_ADDRESS = {
   [sepolia.id]: "0x2c69e8071e842139dE4eFbc3A1597205098769aA",
-  [baseSepolia.id]: "0x0000000000000000000000000000000000000000", // TODO Fase 2b
+  [baseSepolia.id]: "0x73a621990B49DF359158100adF6E00F81ACDbfd3",
 } as const satisfies Record<number, Address>;
 
 export const SUPPORTED_CHAIN_IDS = [sepolia.id, baseSepolia.id] as const;
