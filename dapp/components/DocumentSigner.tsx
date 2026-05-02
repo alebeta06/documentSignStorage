@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { useContract } from "@/hooks/useContract";
+import { Button } from "@/components/ui/button";
 import type { FileWithHash } from "./FileUploader";
 
 interface Props {
@@ -35,7 +36,7 @@ export function DocumentSigner({ fileWithHash }: Props) {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
   // El user puede estar conectado a una red sin DocumentRegistry deployado
-  // (ej: Base Sepolia hasta Fase 2b, o cualquier red fuera de la lista).
+  // (ej: cualquier red fuera de la lista soportada).
   const noContractOnThisChain = isConnected && !contractAddress;
 
   const disabled =
@@ -90,52 +91,47 @@ export function DocumentSigner({ fileWithHash }: Props) {
 
   return (
     <div className="space-y-3">
-      <button
-        onClick={handleSign}
-        disabled={disabled}
-        className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm
-                   hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
+      <Button onClick={handleSign} disabled={disabled} size="default">
         {status.kind === "signing" && "Firmando..."}
         {status.kind === "submitting" && "Enviando transaccion..."}
         {(status.kind === "idle" ||
           status.kind === "done" ||
           status.kind === "error") &&
           "Firmar y registrar on-chain"}
-      </button>
+      </Button>
 
       {!isConnected && (
-        <p className="text-xs text-amber-600">
+        <p className="text-xs text-amber-600 dark:text-amber-400">
           Conecta una wallet para poder firmar.
         </p>
       )}
 
       {noContractOnThisChain && (
-        <p className="text-xs text-amber-600">
+        <p className="text-xs text-amber-600 dark:text-amber-400">
           La red activa (chainId {chainId}) no tiene el contrato deployado.
-          Cambia a Sepolia desde el modal de RainbowKit.
+          Cambia a Sepolia o Base Sepolia desde el modal de RainbowKit.
         </p>
       )}
 
       {!fileWithHash && isConnected && !noContractOnThisChain && (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Subi un archivo primero.
         </p>
       )}
 
       {status.kind === "done" && (
-        <div className="text-sm bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 p-3 rounded-md">
+        <div className="text-sm bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 p-3 rounded-md">
           <div className="font-semibold text-green-800 dark:text-green-300">
             ✓ Documento registrado
           </div>
           <div className="text-xs text-green-700 dark:text-green-400 break-all mt-1">
-            tx: <code>{status.txHash}</code>
+            tx: <code className="font-mono">{status.txHash}</code>
           </div>
         </div>
       )}
 
       {status.kind === "error" && (
-        <div className="text-sm bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-3 rounded-md text-red-800 dark:text-red-300">
+        <div className="text-sm bg-destructive/10 border border-destructive/30 p-3 rounded-md text-destructive">
           ✗ {status.message}
         </div>
       )}
