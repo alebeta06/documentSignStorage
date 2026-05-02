@@ -49,14 +49,14 @@ export default function Home() {
           </div>
         </header>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="sign">Subir y firmar</TabsTrigger>
-            <TabsTrigger value="verify">Verificar</TabsTrigger>
-            <TabsTrigger value="history">Historial</TabsTrigger>
+        <Tabs defaultValue="sign" value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)} className="w-full flex flex-col items-center">
+          <TabsList className="mb-8 flex h-auto w-fit mx-auto gap-2 p-1.5 rounded-xl bg-muted/60">
+            <TabsTrigger className="px-6 py-2.5 text-sm sm:text-base rounded-lg" value="sign">Subir y firmar</TabsTrigger>
+            <TabsTrigger className="px-6 py-2.5 text-sm sm:text-base rounded-lg" value="verify">Verificar</TabsTrigger>
+            <TabsTrigger className="px-6 py-2.5 text-sm sm:text-base rounded-lg" value="history">Historial</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="sign">
+          <TabsContent value="sign" className="w-full">
             <Card>
               <CardHeader>
                 <CardTitle>Firmar documento</CardTitle>
@@ -72,7 +72,7 @@ export default function Home() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="verify">
+          <TabsContent value="verify" className="w-full">
             <Card>
               <CardHeader>
                 <CardTitle>Verificar documento</CardTitle>
@@ -87,7 +87,7 @@ export default function Home() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="history">
+          <TabsContent value="history" className="w-full">
             <Card>
               <CardHeader>
                 <CardTitle>Historial</CardTitle>

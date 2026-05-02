@@ -63,7 +63,7 @@ export function FileUploader({ onFileHashed }: Props) {
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <label htmlFor="file-input" className="block text-sm font-medium">
+        <label htmlFor="file-input" className="block text-sm font-medium cursor-pointer">
           Archivo
         </label>
         <Input
@@ -71,7 +71,7 @@ export function FileUploader({ onFileHashed }: Props) {
           type="file"
           onChange={handleChange}
           disabled={busy}
-          className="h-auto py-2 file:mr-3"
+          className="h-auto py-2 file:mr-3 cursor-pointer file:cursor-pointer"
         />
       </div>
 

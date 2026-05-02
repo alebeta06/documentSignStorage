@@ -34,6 +34,18 @@ export function DocumentSigner({ fileWithHash }: Props) {
     chainId,
   } = useContract();
   const [busy, setBusy] = useState(false);
+  const [signedInfo, setSignedInfo] = useState<{
+    hash: string;
+    signer: string;
+    timestamp: bigint;
+  } | null>(null);
+
+  const [prevHash, setPrevHash] = useState<string | null>(null);
+
+  if (fileWithHash?.hash !== prevHash) {
+    setPrevHash(fileWithHash?.hash ?? null);
+    setSignedInfo(null);
+  }
 
   // El user puede estar conectado a una red sin DocumentRegistry deployado.
   const noContractOnThisChain = isConnected && !contractAddress;
@@ -69,6 +81,12 @@ export function DocumentSigner({ fileWithHash }: Props) {
         signer: address,
       });
 
+      setSignedInfo({
+        hash: fileWithHash.hash,
+        signer: address,
+        timestamp,
+      });
+
       const explorer = getTxExplorer(chainId, txHash);
       toast.success("Documento registrado on-chain", {
         id: toastId,
@@ -88,10 +106,34 @@ export function DocumentSigner({ fileWithHash }: Props) {
   }
 
   return (
-    <div className="space-y-3">
-      <Button onClick={handleSign} disabled={disabled} size="default">
-        {busy ? "Procesando..." : "Firmar y registrar on-chain"}
-      </Button>
+    <div className="space-y-3 mt-4">
+      {signedInfo ? (
+        <div className="text-sm bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 p-4 rounded-md space-y-2">
+          <div className="font-semibold text-green-800 dark:text-green-300">
+            ✓ Documento registrado exitosamente
+          </div>
+          <dl className="text-xs space-y-1">
+            <div className="flex flex-col">
+              <dt className="font-semibold">Firmado por:</dt>
+              <dd className="font-mono break-all">{signedInfo.signer}</dd>
+            </div>
+            <div className="flex flex-col">
+              <dt className="font-semibold">Registrado:</dt>
+              <dd>
+                {new Date(Number(signedInfo.timestamp) * 1000).toLocaleString()}
+              </dd>
+            </div>
+            <div className="flex flex-col">
+              <dt className="font-semibold">Hash:</dt>
+              <dd className="font-mono break-all">{signedInfo.hash}</dd>
+            </div>
+          </dl>
+        </div>
+      ) : (
+        <Button onClick={handleSign} disabled={disabled} size="default">
+          {busy ? "Procesando..." : "Firmar y registrar on-chain"}
+        </Button>
+      )}
 
       {!isConnected && (
         <p className="text-xs text-amber-600 dark:text-amber-400">
