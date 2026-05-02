@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { keccak256 } from "ethers";
+import { keccak256, type Hex } from "viem";
 
 export interface FileWithHash {
   file: File;
-  hash: string; // "0x..." (66 chars)
+  hash: Hex; // "0x..." (66 chars)
 }
 
 interface Props {
@@ -14,14 +14,14 @@ interface Props {
 }
 
 /**
- * Input de archivo + cálculo de keccak256 del lado cliente.
+ * Input de archivo + calculo de keccak256 del lado cliente.
  *
  * El archivo NUNCA se sube — solo su hash. Eso es lo que persistimos on-chain.
- * Si cambiás un solo byte del archivo, el hash cambia y la verificación falla.
+ * Si cambias un solo byte del archivo, el hash cambia y la verificacion falla.
  */
 export function FileUploader({ onFileHashed }: Props) {
   const [fileName, setFileName] = useState<string | null>(null);
-  const [hash, setHash] = useState<string | null>(null);
+  const [hash, setHash] = useState<Hex | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,9 +42,9 @@ export function FileUploader({ onFileHashed }: Props) {
     try {
       // 1) leer el archivo como ArrayBuffer (binary)
       const buf = await file.arrayBuffer();
-      // 2) convertirlo a Uint8Array (formato que ethers acepta para hashear)
+      // 2) convertirlo a Uint8Array (formato que viem acepta para hashear)
       const bytes = new Uint8Array(buf);
-      // 3) keccak256 → string hex "0x..." de 66 chars
+      // 3) keccak256 → Hex "0x..." de 66 chars
       const computedHash = keccak256(bytes);
 
       setHash(computedHash);

@@ -1,22 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { getBytes } from "ethers";
-import { useMetaMask } from "@/contexts/MetaMaskContext";
+import { useAccount, useSignMessage } from "wagmi";
 import { useContract } from "@/hooks/useContract";
 import type { FileWithHash } from "./FileUploader";
 
 interface Props {
-  /** Archivo + hash producido por FileUploader. Null cuando no hay archivo aún. */
+  /** Archivo + hash producido por FileUploader. Null cuando no hay archivo aun. */
   fileWithHash: FileWithHash | null;
 }
 
 // Estados del flujo:
-//  - idle: esperando acción del usuario.
-//  - signing: la wallet está firmando el hash.
-//  - submitting: la tx fue enviada y esperamos confirmación on-chain.
+//  - idle: esperando accion del usuario.
+//  - signing: la wallet esta firmando el hash.
+//  - submitting: la tx fue enviada y esperamos confirmacion on-chain.
 //  - done: tx confirmada.
-//  - error: algo falló.
+//  - error: algo fallo.
 type Status =
   | { kind: "idle" }
   | { kind: "signing" }
@@ -25,13 +24,24 @@ type Status =
   | { kind: "error"; message: string };
 
 export function DocumentSigner({ fileWithHash }: Props) {
-  const { isConnected, address, signMessage } = useMetaMask();
-  const { storeDocumentHash, isDocumentStored } = useContract();
+  const { isConnected, address } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+  const {
+    storeDocumentHash,
+    isDocumentStored,
+    address: contractAddress,
+    chainId,
+  } = useContract();
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+
+  // El user puede estar conectado a una red sin DocumentRegistry deployado
+  // (ej: Base Sepolia hasta Fase 2b, o cualquier red fuera de la lista).
+  const noContractOnThisChain = isConnected && !contractAddress;
 
   const disabled =
     !fileWithHash ||
     !isConnected ||
+    noContractOnThisChain ||
     status.kind === "signing" ||
     status.kind === "submitting";
 
@@ -45,18 +55,19 @@ export function DocumentSigner({ fileWithHash }: Props) {
       if (exists) {
         setStatus({
           kind: "error",
-          message: "Este documento ya está registrado on-chain",
+          message: "Este documento ya esta registrado on-chain",
         });
         return;
       }
 
       // 1) Firmar.
-      // Pasamos el hash COMO BYTES (Uint8Array de 32). Si pasáramos el string "0x..."
-      // ethers lo trataría como un mensaje de texto y firmaría su UTF-8 — eso rompería
-      // la verificación porque el contrato hashea bytes32, no la cadena hexadecimal.
-      // getBytes("0x...") convierte el hex a Uint8Array.
+      // message: { raw: hash } le dice a viem que use los bytes del hash directamente
+      // (no UTF-8 encoding del string). Equivalente a ethers.signMessage(getBytes(hash)).
+      // El prefijo EIP-191 "\x19Ethereum Signed Message:\n32" lo agrega viem internamente.
       setStatus({ kind: "signing" });
-      const signature = await signMessage(getBytes(fileWithHash.hash));
+      const signature = await signMessageAsync({
+        message: { raw: fileWithHash.hash },
+      });
 
       // 2) Mandar la tx.
       setStatus({ kind: "submitting" });
@@ -86,7 +97,7 @@ export function DocumentSigner({ fileWithHash }: Props) {
                    hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {status.kind === "signing" && "Firmando..."}
-        {status.kind === "submitting" && "Enviando transacción..."}
+        {status.kind === "submitting" && "Enviando transaccion..."}
         {(status.kind === "idle" ||
           status.kind === "done" ||
           status.kind === "error") &&
@@ -95,13 +106,20 @@ export function DocumentSigner({ fileWithHash }: Props) {
 
       {!isConnected && (
         <p className="text-xs text-amber-600">
-          Conectá una wallet para poder firmar.
+          Conecta una wallet para poder firmar.
         </p>
       )}
 
-      {!fileWithHash && isConnected && (
+      {noContractOnThisChain && (
+        <p className="text-xs text-amber-600">
+          La red activa (chainId {chainId}) no tiene el contrato deployado.
+          Cambia a Sepolia desde el modal de RainbowKit.
+        </p>
+      )}
+
+      {!fileWithHash && isConnected && !noContractOnThisChain && (
         <p className="text-xs text-gray-500">
-          Subí un archivo primero.
+          Subi un archivo primero.
         </p>
       )}
 

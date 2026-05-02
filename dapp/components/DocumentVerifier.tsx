@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import type { Hex } from "viem";
 import { useContract, type DocumentInfo } from "@/hooks/useContract";
 import { FileUploader, type FileWithHash } from "./FileUploader";
 
 type Result =
   | { kind: "idle" }
   | { kind: "checking" }
-  | { kind: "not-found"; hash: string }
-  | { kind: "found"; hash: string; info: DocumentInfo; signatureValid: boolean }
+  | { kind: "not-found"; hash: Hex }
+  | { kind: "found"; hash: Hex; info: DocumentInfo; signatureValid: boolean }
   | { kind: "error"; message: string };
 
 export function DocumentVerifier() {
@@ -61,7 +62,7 @@ export function DocumentVerifier() {
             Documento no registrado
           </div>
           <div className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-            Este archivo no existe on-chain. Quizá fue alterado, o nunca se registró.
+            Este archivo no existe on-chain. Quiza fue alterado, o nunca se registro.
           </div>
         </div>
       )}
@@ -82,8 +83,8 @@ export function DocumentVerifier() {
             }`}
           >
             {result.signatureValid
-              ? "✓ Documento auténtico"
-              : "✗ Firma inválida"}
+              ? "✓ Documento autentico"
+              : "✗ Firma invalida"}
           </div>
           <dl className="text-xs space-y-1">
             <div className="flex flex-col">

@@ -1,52 +1,59 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useChainId } from "wagmi";
 import { useContract, type DocumentInfo } from "@/hooks/useContract";
 
 export function DocumentHistory() {
-  const { getDocumentCount, getDocumentHashByIndex, getDocumentInfo } =
-    useContract();
+  const chainId = useChainId();
+  const {
+    getDocumentCount,
+    getDocumentHashByIndex,
+    getDocumentInfo,
+    address: contractAddress,
+  } = useContract();
 
   const [docs, setDocs] = useState<DocumentInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // useCallback para que la referencia sea estable entre renders —
-  // si no, el useEffect dispararía en bucle.
+  // si no, el useEffect dispararia en bucle.
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setDocs([]);
     try {
       const count = await getDocumentCount();
       const total = Number(count); // count es bigint; lo convertimos a number para iterar
 
-      // Hacemos las lecturas en paralelo. Promise.all es safe acá porque
-      // son lecturas RPC independientes. En mainnet querrías throttlear.
+      // Lecturas en paralelo. Promise.all es safe porque son lecturas RPC
+      // independientes. En mainnet con muchos docs convendria batching/limits.
       const promises = Array.from({ length: total }, async (_, i) => {
         const hash = await getDocumentHashByIndex(i);
         return getDocumentInfo(hash);
       });
 
       const results = await Promise.all(promises);
-      // Mostramos los más recientes arriba.
-      setDocs(results.reverse());
+      setDocs(results.reverse()); // mas recientes arriba
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  // No metemos las funciones del hook en deps porque useContract retorna funciones
-  // nuevas en cada render — eso causaría loops. Esas funciones son estables en su
-  // efecto (siempre apuntan al mismo contrato), así que es seguro omitirlas.
+  }, [contractAddress, chainId]);
+  // Recargamos cuando cambia el contrato/chain. Las funciones del hook se
+  // omiten porque useContract devuelve refs nuevas en cada render — meterlas
+  // causaria loops. Su efecto siempre apunta al contrato actual.
 
   useEffect(() => {
+    if (!contractAddress) return;
     // queueMicrotask defiere `load` un tick — evita la regla
-    // react-hooks/set-state-in-effect (React 19) que prohíbe llamar setState
-    // sincrónicamente en el cuerpo del effect.
+    // react-hooks/set-state-in-effect (React 19) que prohibe llamar setState
+    // sincronicamente en el cuerpo del effect.
     queueMicrotask(load);
-  }, [load]);
+  }, [load, contractAddress]);
 
   return (
     <div className="space-y-3">
@@ -54,7 +61,7 @@ export function DocumentHistory() {
         <h3 className="text-sm font-semibold">Historial on-chain</h3>
         <button
           onClick={load}
-          disabled={loading}
+          disabled={loading || !contractAddress}
           className="px-3 py-1 text-xs rounded-md bg-gray-200 dark:bg-gray-700
                      hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
         >
@@ -62,15 +69,22 @@ export function DocumentHistory() {
         </button>
       </div>
 
+      {!contractAddress && (
+        <p className="text-sm text-amber-600">
+          Cambia a Sepolia para ver el historial (chainId {chainId} no tiene
+          contrato deployado).
+        </p>
+      )}
+
       {error && (
         <div className="text-sm bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-3 rounded-md text-red-800 dark:text-red-300">
           ✗ {error}
         </div>
       )}
 
-      {!loading && !error && docs.length === 0 && (
+      {!loading && !error && contractAddress && docs.length === 0 && (
         <p className="text-sm text-gray-500">
-          No hay documentos registrados todavía.
+          No hay documentos registrados todavia.
         </p>
       )}
 

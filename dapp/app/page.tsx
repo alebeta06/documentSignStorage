@@ -1,10 +1,10 @@
 "use client";
-// Esta página es Client Component porque usa useState (tabs) y consume
-// el MetaMaskContext. La info se renderiza siempre del lado cliente —
+// Esta pagina es Client Component porque usa useState (tabs) y consume
+// hooks de wagmi/RainbowKit. La info se renderiza siempre del lado cliente —
 // no tiene sentido pre-renderizar nada porque depende del estado de la wallet.
 
 import { useState } from "react";
-import { WalletSelector } from "@/components/WalletSelector";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { FileUploader, type FileWithHash } from "@/components/FileUploader";
 import { DocumentSigner } from "@/components/DocumentSigner";
 import { DocumentVerifier } from "@/components/DocumentVerifier";
@@ -15,7 +15,7 @@ type Tab = "sign" | "verify" | "history";
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("sign");
 
-  // El estado del archivo a firmar vive aquí (en el padre) para que
+  // El estado del archivo a firmar vive aqui (en el padre) para que
   // FileUploader y DocumentSigner compartan la misma info.
   const [fileToSign, setFileToSign] = useState<FileWithHash | null>(null);
 
@@ -29,10 +29,11 @@ export default function Home() {
               Document Sign Storage
             </h1>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Almacenamiento y verificación de documentos sobre Ethereum (Anvil local).
+              Almacenamiento y verificacion de documentos sobre Ethereum
+              (Sepolia + Base Sepolia).
             </p>
           </div>
-          <WalletSelector />
+          <ConnectButton showBalance={false} />
         </header>
 
         {/* Tabs */}

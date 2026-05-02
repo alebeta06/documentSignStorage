@@ -1,138 +1,154 @@
 "use client";
-// Client-only: usa hooks de React + signer del context.
+// Wrapper imperativo sobre el contrato. Internamente usa acciones de @wagmi/core
+// (readContract / writeContract / waitForTransactionReceipt) — wagmi resuelve
+// el RPC, el signer y la chain a partir del wagmi config + wallet conectada.
+//
+// Mantenemos la API tipo "async function" que ya usaban los componentes en la
+// version Anvil, asi minimizamos cambios en DocumentSigner / Verifier / History.
 
-import { useMemo } from "react";
-import { Contract, type ContractTransactionResponse } from "ethers";
-import { useMetaMask } from "@/contexts/MetaMaskContext";
+import { useCallback } from "react";
+import { useAccount, useChainId, useConfig } from "wagmi";
+import {
+  readContract,
+  writeContract,
+  waitForTransactionReceipt,
+} from "@wagmi/core";
+import type { Address, Hex } from "viem";
 import { DocumentRegistryABI } from "@/lib/DocumentRegistryABI";
+import { getContractAddress } from "@/lib/contracts";
 
-// La dirección sale de .env.local. Si no está, lanzamos un error claro
-// para que el usuario sepa que falta correr el deploy + actualizar el .env.
-const CONTRACT_ADDRESS =
-  process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ?? "";
-
-// ─────────────────────────────────────────────────────────────
-// TIPOS PÚBLICOS — la "shape" del Document que ve el frontend.
-// ─────────────────────────────────────────────────────────────
-
+// "Shape" del Document que ve el frontend — refleja el struct on-chain.
 export interface DocumentInfo {
-  hash: string;       // bytes32 → "0x..." (66 chars: "0x" + 64 hex)
-  timestamp: bigint;  // ethers v6 devuelve uint256 como bigint
-  signer: string;     // address → "0x..." (42 chars)
-  signature: string;  // bytes (65) → "0x..." (132 chars)
+  hash: Hex;
+  timestamp: bigint;
+  signer: Address;
+  signature: Hex;
 }
 
-// ─────────────────────────────────────────────────────────────
-// HOOK
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Hook que expone funciones tipadas del contrato.
- *
- * Lecturas: usan el provider compartido (no requieren wallet conectada).
- * Escrituras: usan el signer del MetaMaskContext (requieren wallet conectada).
- */
 export function useContract() {
-  const { provider, getSigner } = useMetaMask();
+  const config = useConfig();
+  const chainId = useChainId();
+  const { address: account } = useAccount();
 
-  // Verificación temprana: si no hay address en .env, fallar claro y temprano.
-  if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000") {
-    // No tiramos error en runtime de render — solo lo logueamos.
-    // Las funciones harán throw cuando se las invoque.
-    if (typeof window !== "undefined") {
-      console.warn(
-        "[useContract] NEXT_PUBLIC_CONTRACT_ADDRESS no configurado. Deployá el contrato y actualizá .env.local."
+  // address del contrato segun la red activa. Puede ser undefined si el user
+  // esta en una red no soportada o si no hay deploy en esa chain (Base Sepolia
+  // hasta que se complete Fase 2b).
+  const contractAddress = getContractAddress(chainId);
+
+  // Helper que valida que tengamos address antes de cualquier llamada.
+  // Lanza con mensaje claro para que el componente lo muestre al user.
+  const ensureAddress = useCallback((): Address => {
+    if (!contractAddress) {
+      throw new Error(
+        `No DocumentRegistry deployado en chainId ${chainId}. Cambia a Sepolia.`
       );
     }
-  }
-
-  // Instancia "read-only": el segundo arg es solo provider, no signer.
-  // useMemo evita rearmarla en cada render.
-  const readContract = useMemo(
-    () => new Contract(CONTRACT_ADDRESS, DocumentRegistryABI, provider),
-    [provider]
-  );
+    return contractAddress;
+  }, [contractAddress, chainId]);
 
   // ── Lecturas ──────────────────────────────────────────────
 
-  const isDocumentStored = async (hash: string): Promise<boolean> => {
-    return await readContract.isDocumentStored(hash);
-  };
+  const isDocumentStored = useCallback(
+    async (hash: Hex): Promise<boolean> => {
+      return (await readContract(config, {
+        address: ensureAddress(),
+        abi: DocumentRegistryABI,
+        functionName: "isDocumentStored",
+        args: [hash],
+      })) as boolean;
+    },
+    [config, ensureAddress]
+  );
 
-  const getDocumentCount = async (): Promise<bigint> => {
-    return await readContract.getDocumentCount();
-  };
+  const getDocumentCount = useCallback(async (): Promise<bigint> => {
+    return (await readContract(config, {
+      address: ensureAddress(),
+      abi: DocumentRegistryABI,
+      functionName: "getDocumentCount",
+    })) as bigint;
+  }, [config, ensureAddress]);
 
-  const getDocumentHashByIndex = async (index: bigint | number): Promise<string> => {
-    return await readContract.getDocumentHashByIndex(index);
-  };
+  const getDocumentHashByIndex = useCallback(
+    async (index: bigint | number): Promise<Hex> => {
+      return (await readContract(config, {
+        address: ensureAddress(),
+        abi: DocumentRegistryABI,
+        functionName: "getDocumentHashByIndex",
+        args: [BigInt(index)],
+      })) as Hex;
+    },
+    [config, ensureAddress]
+  );
 
-  const getDocumentInfo = async (hash: string): Promise<DocumentInfo> => {
-    // ethers devuelve un Result con acceso named — lo "aplanamos" a nuestro tipo
-    // para que el resto del código no dependa del shape interno de ethers.
-    const r = await readContract.getDocumentInfo(hash);
-    return {
-      hash: r.hash,
-      timestamp: r.timestamp,
-      signer: r.signer,
-      signature: r.signature,
-    };
-  };
+  const getDocumentInfo = useCallback(
+    async (hash: Hex): Promise<DocumentInfo> => {
+      const r = (await readContract(config, {
+        address: ensureAddress(),
+        abi: DocumentRegistryABI,
+        functionName: "getDocumentInfo",
+        args: [hash],
+      })) as DocumentInfo;
+      return r;
+    },
+    [config, ensureAddress]
+  );
 
-  const verifyDocument = async (
-    hash: string,
-    signer: string,
-    signature: string
-  ): Promise<boolean> => {
-    return await readContract.verifyDocument(hash, signer, signature);
-  };
+  const verifyDocument = useCallback(
+    async (
+      hash: Hex,
+      signer: Address,
+      signature: Hex
+    ): Promise<boolean> => {
+      return (await readContract(config, {
+        address: ensureAddress(),
+        abi: DocumentRegistryABI,
+        functionName: "verifyDocument",
+        args: [hash, signer, signature],
+      })) as boolean;
+    },
+    [config, ensureAddress]
+  );
 
   // ── Escrituras ────────────────────────────────────────────
 
   /**
-   * Manda la tx storeDocumentHash y ESPERA la confirmación.
+   * Manda storeDocumentHash y espera 1 confirmacion.
    * Devuelve el txHash una vez minado.
    */
-  const storeDocumentHash = async (params: {
-    hash: string;
-    timestamp: bigint;
-    signature: string;
-    signer: string;
-  }): Promise<string> => {
-    const wallet = getSigner();
-    if (!wallet) throw new Error("No wallet connected");
+  const storeDocumentHash = useCallback(
+    async (params: {
+      hash: Hex;
+      timestamp: bigint;
+      signature: Hex;
+      signer: Address;
+    }): Promise<Hex> => {
+      if (!account) throw new Error("No wallet connected");
 
-    // Conectamos un Contract NUEVO con el signer activo.
-    // No reusamos readContract porque .connect() devuelve un nuevo Contract en v6.
-    const writeContract = new Contract(
-      CONTRACT_ADDRESS,
-      DocumentRegistryABI,
-      wallet
-    );
+      // writeContract abre el popup de la wallet, firma y manda la tx.
+      // Devuelve el txHash inmediatamente (la tx queda en mempool).
+      const txHash = await writeContract(config, {
+        address: ensureAddress(),
+        abi: DocumentRegistryABI,
+        functionName: "storeDocumentHash",
+        args: [params.hash, params.timestamp, params.signature, params.signer],
+      });
 
-    const tx = (await writeContract.storeDocumentHash(
-      params.hash,
-      params.timestamp,
-      params.signature,
-      params.signer
-    )) as ContractTransactionResponse;
-
-    // .wait() resuelve cuando la tx queda incluida en un bloque.
-    // En Anvil esto es básicamente instantáneo.
-    const receipt = await tx.wait();
-    return receipt?.hash ?? tx.hash;
-  };
+      // Esperamos 1 confirmacion para que la UI pueda mostrar "registrado".
+      // En Sepolia/Base Sepolia tarda ~12-15s.
+      const receipt = await waitForTransactionReceipt(config, { hash: txHash });
+      return receipt.transactionHash;
+    },
+    [config, ensureAddress, account]
+  );
 
   return {
-    // metadata
-    address: CONTRACT_ADDRESS,
-    // lecturas
+    address: contractAddress,
+    chainId,
     isDocumentStored,
     getDocumentCount,
     getDocumentHashByIndex,
     getDocumentInfo,
     verifyDocument,
-    // escrituras
     storeDocumentHash,
   };
 }
