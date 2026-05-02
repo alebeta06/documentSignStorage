@@ -8,6 +8,7 @@ import { WagmiProvider } from "wagmi";
 import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { config } from "@/lib/wagmi";
+import { Toaster } from "@/components/ui/sonner";
 
 import "@rainbow-me/rainbowkit/styles.css";
 
@@ -20,7 +21,10 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>{children}</RainbowKitProvider>
+        <RainbowKitProvider>
+          {children}
+          <Toaster position="bottom-right" richColors closeButton />
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

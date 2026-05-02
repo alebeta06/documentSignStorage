@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { useAccount, useSignMessage } from "wagmi";
+import { BaseError, UserRejectedRequestError } from "viem";
+import { toast } from "sonner";
 import { useContract } from "@/hooks/useContract";
 import { Button } from "@/components/ui/button";
+import { getTxExplorer } from "@/lib/explorers";
 import type { FileWithHash } from "./FileUploader";
 
 interface Props {
@@ -11,18 +14,15 @@ interface Props {
   fileWithHash: FileWithHash | null;
 }
 
-// Estados del flujo:
-//  - idle: esperando accion del usuario.
-//  - signing: la wallet esta firmando el hash.
-//  - submitting: la tx fue enviada y esperamos confirmacion on-chain.
-//  - done: tx confirmada.
-//  - error: algo fallo.
-type Status =
-  | { kind: "idle" }
-  | { kind: "signing" }
-  | { kind: "submitting" }
-  | { kind: "done"; txHash: string }
-  | { kind: "error"; message: string };
+function parseError(e: unknown): string {
+  if (e instanceof BaseError) {
+    if (e.walk((err) => err instanceof UserRejectedRequestError)) {
+      return "Firma rechazada en la wallet";
+    }
+    return e.shortMessage || e.message;
+  }
+  return e instanceof Error ? e.message : String(e);
+}
 
 export function DocumentSigner({ fileWithHash }: Props) {
   const { isConnected, address } = useAccount();
@@ -33,45 +33,34 @@ export function DocumentSigner({ fileWithHash }: Props) {
     address: contractAddress,
     chainId,
   } = useContract();
-  const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [busy, setBusy] = useState(false);
 
-  // El user puede estar conectado a una red sin DocumentRegistry deployado
-  // (ej: cualquier red fuera de la lista soportada).
+  // El user puede estar conectado a una red sin DocumentRegistry deployado.
   const noContractOnThisChain = isConnected && !contractAddress;
 
   const disabled =
-    !fileWithHash ||
-    !isConnected ||
-    noContractOnThisChain ||
-    status.kind === "signing" ||
-    status.kind === "submitting";
+    !fileWithHash || !isConnected || noContractOnThisChain || busy;
 
   async function handleSign() {
     if (!fileWithHash || !address) return;
-    setStatus({ kind: "idle" });
+
+    const exists = await isDocumentStored(fileWithHash.hash).catch(() => false);
+    if (exists) {
+      toast.warning("Este documento ya esta registrado on-chain");
+      return;
+    }
+
+    setBusy(true);
+    const toastId = toast.loading("Firma con tu wallet...");
 
     try {
-      // 0) Pre-check: ¿este hash ya existe? Evita la tx revertida (ahorra gas y UX).
-      const exists = await isDocumentStored(fileWithHash.hash);
-      if (exists) {
-        setStatus({
-          kind: "error",
-          message: "Este documento ya esta registrado on-chain",
-        });
-        return;
-      }
-
-      // 1) Firmar.
       // message: { raw: hash } le dice a viem que use los bytes del hash directamente
-      // (no UTF-8 encoding del string). Equivalente a ethers.signMessage(getBytes(hash)).
-      // El prefijo EIP-191 "\x19Ethereum Signed Message:\n32" lo agrega viem internamente.
-      setStatus({ kind: "signing" });
+      // (no UTF-8 encoding del string). El prefijo EIP-191 lo agrega viem.
       const signature = await signMessageAsync({
         message: { raw: fileWithHash.hash },
       });
 
-      // 2) Mandar la tx.
-      setStatus({ kind: "submitting" });
+      toast.loading("Enviando transaccion (tarda ~15s)...", { id: toastId });
       const timestamp = BigInt(Math.floor(Date.now() / 1000));
       const txHash = await storeDocumentHash({
         hash: fileWithHash.hash,
@@ -80,24 +69,28 @@ export function DocumentSigner({ fileWithHash }: Props) {
         signer: address,
       });
 
-      setStatus({ kind: "done", txHash });
-    } catch (err) {
-      setStatus({
-        kind: "error",
-        message: err instanceof Error ? err.message : String(err),
+      const explorer = getTxExplorer(chainId, txHash);
+      toast.success("Documento registrado on-chain", {
+        id: toastId,
+        description: `tx: ${txHash.slice(0, 10)}…${txHash.slice(-8)}`,
+        action: explorer
+          ? {
+              label: `Ver en ${explorer.name}`,
+              onClick: () => window.open(explorer.url, "_blank"),
+            }
+          : undefined,
       });
+    } catch (err) {
+      toast.error(parseError(err), { id: toastId });
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
     <div className="space-y-3">
       <Button onClick={handleSign} disabled={disabled} size="default">
-        {status.kind === "signing" && "Firmando..."}
-        {status.kind === "submitting" && "Enviando transaccion..."}
-        {(status.kind === "idle" ||
-          status.kind === "done" ||
-          status.kind === "error") &&
-          "Firmar y registrar on-chain"}
+        {busy ? "Procesando..." : "Firmar y registrar on-chain"}
       </Button>
 
       {!isConnected && (
@@ -114,26 +107,7 @@ export function DocumentSigner({ fileWithHash }: Props) {
       )}
 
       {!fileWithHash && isConnected && !noContractOnThisChain && (
-        <p className="text-xs text-muted-foreground">
-          Subi un archivo primero.
-        </p>
-      )}
-
-      {status.kind === "done" && (
-        <div className="text-sm bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 p-3 rounded-md">
-          <div className="font-semibold text-green-800 dark:text-green-300">
-            ✓ Documento registrado
-          </div>
-          <div className="text-xs text-green-700 dark:text-green-400 break-all mt-1">
-            tx: <code className="font-mono">{status.txHash}</code>
-          </div>
-        </div>
-      )}
-
-      {status.kind === "error" && (
-        <div className="text-sm bg-destructive/10 border border-destructive/30 p-3 rounded-md text-destructive">
-          ✗ {status.message}
-        </div>
+        <p className="text-xs text-muted-foreground">Subi un archivo primero.</p>
       )}
     </div>
   );

@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useChainId } from "wagmi";
 import { useContract, type DocumentInfo } from "@/hooks/useContract";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const SKELETON_ROWS = 3;
 
 export function DocumentHistory() {
   const chainId = useChainId();
@@ -26,7 +29,7 @@ export function DocumentHistory() {
     setDocs([]);
     try {
       const count = await getDocumentCount();
-      const total = Number(count); // count es bigint; lo convertimos a number para iterar
+      const total = Number(count);
 
       // Lecturas en paralelo. Promise.all es safe porque son lecturas RPC
       // independientes. En mainnet con muchos docs convendria batching/limits.
@@ -83,13 +86,42 @@ export function DocumentHistory() {
         </div>
       )}
 
+      {loading && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="text-left border-b border-border">
+              <tr>
+                <th className="py-2 pr-3 font-semibold">Hash</th>
+                <th className="py-2 pr-3 font-semibold">Signer</th>
+                <th className="py-2 font-semibold">Fecha</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+                <tr key={i}>
+                  <td className="py-2 pr-3">
+                    <Skeleton className="h-4 w-40" />
+                  </td>
+                  <td className="py-2 pr-3">
+                    <Skeleton className="h-4 w-24" />
+                  </td>
+                  <td className="py-2">
+                    <Skeleton className="h-4 w-32" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {!loading && !error && contractAddress && docs.length === 0 && (
         <p className="text-sm text-muted-foreground">
           No hay documentos registrados todavia.
         </p>
       )}
 
-      {docs.length > 0 && (
+      {!loading && docs.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="text-left border-b border-border">
