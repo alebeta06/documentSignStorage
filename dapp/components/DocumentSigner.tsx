@@ -42,8 +42,9 @@ export function DocumentSigner({ fileWithHash }: Props) {
 
   const [prevHash, setPrevHash] = useState<string | null>(null);
 
-  if (fileWithHash?.hash !== prevHash) {
-    setPrevHash(fileWithHash?.hash ?? null);
+  const currentHash = fileWithHash?.hash ?? null;
+  if (currentHash !== prevHash) {
+    setPrevHash(currentHash);
     setSignedInfo(null);
   }
 
