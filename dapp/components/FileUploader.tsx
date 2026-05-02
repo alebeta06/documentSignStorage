@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { keccak256, type Hex } from "viem";
+import { Input } from "@/components/ui/input";
 
 export interface FileWithHash {
   file: File;
@@ -61,38 +62,36 @@ export function FileUploader({ onFileHashed }: Props) {
 
   return (
     <div className="space-y-3">
-      <label className="block">
-        <span className="block text-sm font-medium mb-2">Archivo</span>
-        <input
+      <div className="space-y-2">
+        <label htmlFor="file-input" className="block text-sm font-medium">
+          Archivo
+        </label>
+        <Input
+          id="file-input"
           type="file"
           onChange={handleChange}
           disabled={busy}
-          className="block w-full text-sm
-                     file:mr-4 file:py-2 file:px-4
-                     file:rounded-md file:border-0
-                     file:bg-blue-600 file:text-white
-                     file:cursor-pointer hover:file:bg-blue-700
-                     disabled:opacity-50"
+          className="h-auto py-2 file:mr-3"
         />
-      </label>
+      </div>
 
       {busy && (
-        <p className="text-sm text-gray-500">Calculando hash...</p>
+        <p className="text-sm text-muted-foreground">Calculando hash...</p>
       )}
 
       {fileName && hash && !busy && (
-        <div className="text-xs space-y-1 bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
+        <div className="text-xs space-y-1 bg-muted p-3 rounded-md">
           <div>
             <span className="font-semibold">Archivo:</span> {fileName}
           </div>
           <div className="break-all">
             <span className="font-semibold">keccak256:</span>{" "}
-            <code className="text-blue-700 dark:text-blue-400">{hash}</code>
+            <code className="font-mono text-foreground">{hash}</code>
           </div>
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }
