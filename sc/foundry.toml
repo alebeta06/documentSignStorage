@@ -3,4 +3,16 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
+# Aliases de redes — permiten usar `--rpc-url sepolia` en vez de la URL completa.
+# Foundry expande las variables ${...} desde sc/.env automaticamente.
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
+
+# Configuracion de Etherscan/Basescan — solo se usa si ETHERSCAN_API_KEY esta definido.
+# Si esta vacio, el deploy verifica con Sourcify y se ignoran estas entradas.
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}", chain = 11155111 }
+base_sepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api-sepolia.basescan.org/api", chain = 84532 }
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

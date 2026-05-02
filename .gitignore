@@ -3,6 +3,7 @@ sc/lib/
 sc/cache/
 sc/out/
 sc/broadcast/
+sc/.env
 
 # Editor / OS
 .DS_Store
