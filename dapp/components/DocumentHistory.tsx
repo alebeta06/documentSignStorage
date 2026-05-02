@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useChainId } from "wagmi";
 import { useContract, type DocumentInfo } from "@/hooks/useContract";
+import { Button } from "@/components/ui/button";
 
 export function DocumentHistory() {
   const chainId = useChainId();
@@ -59,31 +60,31 @@ export function DocumentHistory() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Historial on-chain</h3>
-        <button
+        <Button
           onClick={load}
           disabled={loading || !contractAddress}
-          className="px-3 py-1 text-xs rounded-md bg-gray-200 dark:bg-gray-700
-                     hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+          variant="secondary"
+          size="sm"
         >
           {loading ? "Cargando..." : "Recargar"}
-        </button>
+        </Button>
       </div>
 
       {!contractAddress && (
-        <p className="text-sm text-amber-600">
-          Cambia a Sepolia para ver el historial (chainId {chainId} no tiene
-          contrato deployado).
+        <p className="text-sm text-amber-600 dark:text-amber-400">
+          Cambia a Sepolia o Base Sepolia para ver el historial (chainId{" "}
+          {chainId} no tiene contrato deployado).
         </p>
       )}
 
       {error && (
-        <div className="text-sm bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-3 rounded-md text-red-800 dark:text-red-300">
+        <div className="text-sm bg-destructive/10 border border-destructive/30 p-3 rounded-md text-destructive">
           ✗ {error}
         </div>
       )}
 
       {!loading && !error && contractAddress && docs.length === 0 && (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           No hay documentos registrados todavia.
         </p>
       )}
@@ -91,14 +92,14 @@ export function DocumentHistory() {
       {docs.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="text-left border-b border-gray-200 dark:border-gray-700">
+            <thead className="text-left border-b border-border">
               <tr>
                 <th className="py-2 pr-3 font-semibold">Hash</th>
                 <th className="py-2 pr-3 font-semibold">Signer</th>
                 <th className="py-2 font-semibold">Fecha</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            <tbody className="divide-y divide-border">
               {docs.map((d) => (
                 <tr key={d.hash}>
                   <td
