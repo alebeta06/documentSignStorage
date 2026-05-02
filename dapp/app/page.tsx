@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FileUploader, type FileWithHash } from "@/components/FileUploader";
 import { DocumentSigner } from "@/components/DocumentSigner";
 import { DocumentVerifier } from "@/components/DocumentVerifier";
@@ -36,66 +37,29 @@ export default function Home() {
           <ConnectButton showBalance={false} />
         </header>
 
-        {/* Tabs */}
-        <nav className="flex gap-1 border-b border-zinc-200 dark:border-zinc-800 mb-6">
-          <TabButton
-            active={activeTab === "sign"}
-            onClick={() => setActiveTab("sign")}
-          >
-            Upload &amp; Sign
-          </TabButton>
-          <TabButton
-            active={activeTab === "verify"}
-            onClick={() => setActiveTab("verify")}
-          >
-            Verify
-          </TabButton>
-          <TabButton
-            active={activeTab === "history"}
-            onClick={() => setActiveTab("history")}
-          >
-            History
-          </TabButton>
-        </nav>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="sign">Upload &amp; Sign</TabsTrigger>
+            <TabsTrigger value="verify">Verify</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+          </TabsList>
 
-        {/* Tab content */}
-        <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6">
-          {activeTab === "sign" && (
-            <div className="space-y-6">
+          <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6">
+            <TabsContent value="sign" className="space-y-6">
               <FileUploader onFileHashed={setFileToSign} />
               <DocumentSigner fileWithHash={fileToSign} />
-            </div>
-          )}
+            </TabsContent>
 
-          {activeTab === "verify" && <DocumentVerifier />}
+            <TabsContent value="verify">
+              <DocumentVerifier />
+            </TabsContent>
 
-          {activeTab === "history" && <DocumentHistory />}
-        </section>
+            <TabsContent value="history">
+              <DocumentHistory />
+            </TabsContent>
+          </section>
+        </Tabs>
       </main>
     </div>
-  );
-}
-
-// Helper interno para los botones de tab — no merece su propio archivo.
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-        active
-          ? "border-blue-600 text-blue-700 dark:text-blue-400"
-          : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
