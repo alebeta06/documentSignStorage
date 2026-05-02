@@ -6,6 +6,13 @@
 import { useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { FileUploader, type FileWithHash } from "@/components/FileUploader";
 import { DocumentSigner } from "@/components/DocumentSigner";
 import { DocumentVerifier } from "@/components/DocumentVerifier";
@@ -21,7 +28,7 @@ export default function Home() {
   const [fileToSign, setFileToSign] = useState<FileWithHash | null>(null);
 
   return (
-    <div className="flex flex-col flex-1 bg-zinc-50 dark:bg-zinc-950 font-sans">
+    <div className="flex flex-col flex-1 bg-background font-sans">
       <main className="w-full max-w-3xl mx-auto py-10 px-6 flex-1">
         {/* Header */}
         <header className="mb-8 space-y-4">
@@ -29,7 +36,7 @@ export default function Home() {
             <h1 className="text-2xl font-semibold tracking-tight">
               Document Sign Storage
             </h1>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               Almacenamiento y verificacion de documentos sobre Ethereum
               (Sepolia + Base Sepolia).
             </p>
@@ -44,20 +51,50 @@ export default function Home() {
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
-          <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6">
-            <TabsContent value="sign" className="space-y-6">
-              <FileUploader onFileHashed={setFileToSign} />
-              <DocumentSigner fileWithHash={fileToSign} />
-            </TabsContent>
+          <TabsContent value="sign">
+            <Card>
+              <CardHeader>
+                <CardTitle>Firmar documento</CardTitle>
+                <CardDescription>
+                  Subi un archivo, firma su hash con tu wallet y registralo
+                  on-chain.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <FileUploader onFileHashed={setFileToSign} />
+                <DocumentSigner fileWithHash={fileToSign} />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-            <TabsContent value="verify">
-              <DocumentVerifier />
-            </TabsContent>
+          <TabsContent value="verify">
+            <Card>
+              <CardHeader>
+                <CardTitle>Verificar documento</CardTitle>
+                <CardDescription>
+                  Subi el archivo original y comprobamos contra la blockchain
+                  si fue alterado.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DocumentVerifier />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-            <TabsContent value="history">
-              <DocumentHistory />
-            </TabsContent>
-          </section>
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Historial</CardTitle>
+                <CardDescription>
+                  Documentos registrados en la chain activa.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DocumentHistory />
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
     </div>
