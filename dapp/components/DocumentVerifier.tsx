@@ -62,7 +62,8 @@ export function DocumentVerifier() {
             Documento no registrado
           </div>
           <div className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-            Este archivo no existe on-chain. Quiza fue alterado, o nunca se registro.
+            Este archivo no existe on-chain. Quizá fue alterado, o nunca se
+            registró.
           </div>
         </div>
       )}
@@ -83,8 +84,8 @@ export function DocumentVerifier() {
             }`}
           >
             {result.signatureValid
-              ? "✓ Documento autentico"
-              : "✗ Firma invalida"}
+              ? "✓ Documento auténtico"
+              : "✗ Firma inválida"}
           </div>
           <dl className="text-xs space-y-1">
             <div className="flex flex-col">

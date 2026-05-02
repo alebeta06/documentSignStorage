@@ -46,12 +46,12 @@ export function DocumentSigner({ fileWithHash }: Props) {
 
     const exists = await isDocumentStored(fileWithHash.hash).catch(() => false);
     if (exists) {
-      toast.warning("Este documento ya esta registrado on-chain");
+      toast.warning("Este documento ya está registrado on-chain");
       return;
     }
 
     setBusy(true);
-    const toastId = toast.loading("Firma con tu wallet...");
+    const toastId = toast.loading("Firmá con tu wallet...");
 
     try {
       // message: { raw: hash } le dice a viem que use los bytes del hash directamente
@@ -60,7 +60,7 @@ export function DocumentSigner({ fileWithHash }: Props) {
         message: { raw: fileWithHash.hash },
       });
 
-      toast.loading("Enviando transaccion (tarda ~15s)...", { id: toastId });
+      toast.loading("Enviando transacción (tarda ~15 s)...", { id: toastId });
       const timestamp = BigInt(Math.floor(Date.now() / 1000));
       const txHash = await storeDocumentHash({
         hash: fileWithHash.hash,
@@ -95,19 +95,19 @@ export function DocumentSigner({ fileWithHash }: Props) {
 
       {!isConnected && (
         <p className="text-xs text-amber-600 dark:text-amber-400">
-          Conecta una wallet para poder firmar.
+          Conectá una wallet para poder firmar.
         </p>
       )}
 
       {noContractOnThisChain && (
         <p className="text-xs text-amber-600 dark:text-amber-400">
           La red activa (chainId {chainId}) no tiene el contrato deployado.
-          Cambia a Sepolia o Base Sepolia desde el modal de RainbowKit.
+          Cambiá a Sepolia o Base Sepolia desde el modal de RainbowKit.
         </p>
       )}
 
       {!fileWithHash && isConnected && !noContractOnThisChain && (
-        <p className="text-xs text-muted-foreground">Subi un archivo primero.</p>
+        <p className="text-xs text-muted-foreground">Subí un archivo primero.</p>
       )}
     </div>
   );

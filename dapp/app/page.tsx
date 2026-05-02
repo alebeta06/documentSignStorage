@@ -17,6 +17,8 @@ import { FileUploader, type FileWithHash } from "@/components/FileUploader";
 import { DocumentSigner } from "@/components/DocumentSigner";
 import { DocumentVerifier } from "@/components/DocumentVerifier";
 import { DocumentHistory } from "@/components/DocumentHistory";
+import { ChainBadge } from "@/components/ChainBadge";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type Tab = "sign" | "verify" | "history";
 
@@ -30,25 +32,28 @@ export default function Home() {
   return (
     <div className="flex flex-col flex-1 bg-background font-sans">
       <main className="w-full max-w-3xl mx-auto py-10 px-6 flex-1">
-        {/* Header */}
-        <header className="mb-8 space-y-4">
-          <div>
+        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight">
               Document Sign Storage
             </h1>
             <p className="text-sm text-muted-foreground">
-              Almacenamiento y verificacion de documentos sobre Ethereum
+              Almacenamiento y verificación de documentos sobre Ethereum
               (Sepolia + Base Sepolia).
             </p>
           </div>
-          <ConnectButton showBalance={false} />
+          <div className="flex items-center gap-2 flex-wrap">
+            <ChainBadge />
+            <ConnectButton showBalance={false} />
+            <ThemeToggle />
+          </div>
         </header>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
           <TabsList className="mb-6">
-            <TabsTrigger value="sign">Upload &amp; Sign</TabsTrigger>
-            <TabsTrigger value="verify">Verify</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="sign">Subir y firmar</TabsTrigger>
+            <TabsTrigger value="verify">Verificar</TabsTrigger>
+            <TabsTrigger value="history">Historial</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sign">
@@ -56,7 +61,7 @@ export default function Home() {
               <CardHeader>
                 <CardTitle>Firmar documento</CardTitle>
                 <CardDescription>
-                  Subi un archivo, firma su hash con tu wallet y registralo
+                  Subí un archivo, firmá su hash con tu wallet y registralo
                   on-chain.
                 </CardDescription>
               </CardHeader>
@@ -72,7 +77,7 @@ export default function Home() {
               <CardHeader>
                 <CardTitle>Verificar documento</CardTitle>
                 <CardDescription>
-                  Subi el archivo original y comprobamos contra la blockchain
+                  Subí el archivo original y comprobamos contra la blockchain
                   si fue alterado.
                 </CardDescription>
               </CardHeader>
@@ -87,7 +92,7 @@ export default function Home() {
               <CardHeader>
                 <CardTitle>Historial</CardTitle>
                 <CardDescription>
-                  Documentos registrados en la chain activa.
+                  Documentos registrados en la red activa.
                 </CardDescription>
               </CardHeader>
               <CardContent>

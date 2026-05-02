@@ -75,7 +75,7 @@ export function DocumentHistory() {
 
       {!contractAddress && (
         <p className="text-sm text-amber-600 dark:text-amber-400">
-          Cambia a Sepolia o Base Sepolia para ver el historial (chainId{" "}
+          Cambiá a Sepolia o Base Sepolia para ver el historial (chainId{" "}
           {chainId} no tiene contrato deployado).
         </p>
       )}
@@ -117,7 +117,7 @@ export function DocumentHistory() {
 
       {!loading && !error && contractAddress && docs.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          No hay documentos registrados todavia.
+          No hay documentos registrados todavía.
         </p>
       )}
 

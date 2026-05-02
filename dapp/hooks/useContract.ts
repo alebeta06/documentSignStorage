@@ -40,7 +40,7 @@ export function useContract() {
   const ensureAddress = useCallback((): Address => {
     if (!contractAddress) {
       throw new Error(
-        `No DocumentRegistry deployado en chainId ${chainId}. Cambia a Sepolia.`
+        `No DocumentRegistry deployado en chainId ${chainId}. Cambiá a Sepolia o Base Sepolia.`
       );
     }
     return contractAddress;
