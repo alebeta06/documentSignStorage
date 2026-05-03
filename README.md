@@ -4,176 +4,212 @@ dApp educativa (curso **CODECRYPTO**) para almacenar y verificar la autenticidad
 
 El usuario sube un archivo, el frontend calcula su `keccak256`, lo firma con una wallet (ECDSA) y persiste `hash + signature + timestamp + signer` on-chain. Cualquier persona puede luego volver a subir el mismo archivo y comparar el hash on-chain para verificar que no fue alterado y quién lo firmó.
 
-Corre 100% en local con [Anvil](https://book.getfoundry.sh/anvil/) — no requiere testnet ni MetaMask.
+🌐 **Demo en vivo:** https://document-sign-storage.vercel.app/
 
-## Estructura
+---
 
-```
-sc/      Smart contracts (Solidity + Foundry)
-dapp/    Frontend (Next.js 16 + TypeScript + ethers v6 + Tailwind 4)
-```
+## Casos de uso reales
+
+El patrón "registrar el hash de un documento on-chain + firmar con ECDSA" sirve para cualquier escenario donde necesitás **probar que algo existió en un momento específico, sin revelar su contenido**. Ejemplos concretos:
+
+| Caso | Cómo ayuda la blockchain |
+|---|---|
+| **Notarización digital** de contratos privados (NDAs, acuerdos comerciales, alquileres) | Reemplaza al notario para sellar la fecha y la identidad del firmante. Si después una parte alega no haber firmado, el verificador prueba que sí. |
+| **Diplomas y certificados académicos** | La universidad firma el hash del PDF emitido. Cualquier empleador valida el diploma sin tener que llamar a la institución. |
+| **Cadena de custodia legal** (evidencia digital, peritajes) | Cada archivo de evidencia se hashea + firma al momento de su recolección. Garantiza que no fue alterado entre la captura y la presentación en juicio. |
+| **Propiedad intelectual / prior art** | Un diseñador o inventor firma el hash de su boceto antes de divulgarlo. Si después alguien lo patenta, hay prueba on-chain de la autoría previa. |
+| **Auditoría de releases de software** | Cada vez que se publica un binario/source tarball se firma su hash. Los usuarios verifican que descargaron el archivo legítimo y no una versión modificada. |
+| **Whistleblowing seguro** | El denunciante firma el hash de un documento sensible y lo registra. Después puede revelar el contenido a un periodista; el periodista demuestra que el documento existía en la fecha del registro, sin que el denunciante haya tenido que exponerse antes. |
+| **Actas de directorio / minutas corporativas** | Compliance interno: cada acta se firma por los presentes y se registra. Auditorías futuras verifican integridad sin tener que confiar en el archivo del secretario. |
+| **Provenance de objetos físicos** (arte, vinos, lujo) | El certificado de autenticidad se hashea y se firma por el productor. Compradores secundarios verifican antes de pagar. |
+
+> En todos los casos, **el archivo nunca se sube** a la blockchain — solo su hash de 32 bytes. Eso preserva privacidad (el contenido queda offline) y mantiene el costo independiente del tamaño del archivo.
+
+---
 
 ## Stack
 
 | Capa | Tecnología |
-|------|------------|
-| Smart contract | Solidity ^0.8.20, Foundry (forge + anvil + cast) |
+|---|---|
+| Smart contract | Solidity ^0.8.20, Foundry (forge + cast) |
 | Frontend | Next.js 16 (App Router) + React 19 + TypeScript |
-| Wallet / blockchain | ethers v6 (`HDNodeWallet`, `JsonRpcProvider`) |
-| Estilos | Tailwind CSS 4 |
-| Red | Anvil local en `http://localhost:8545`, chainId `31337` |
+| Web3 client | wagmi v2 + viem (sin ethers) |
+| Connect wallet | RainbowKit v2 (modal + EIP-6963 multi-wallet picker) |
+| UI | shadcn/ui (Radix/Base UI + Tailwind 4) + Sonner toasts |
+| Estado de queries | TanStack Query v5 |
+| Theming | next-themes (dark/light persistente) |
+| Hosting | Vercel (production branch: `testnet`) |
+| Redes | Sepolia (Ethereum testnet), Base Sepolia (L2 testnet) |
 
-## Setup
+---
 
-Una sola vez al clonar el repo:
+## Contratos deployados
+
+`DocumentRegistry` está deployado en dos redes. La dApp lee la red activa de la wallet conectada y usa la dirección correspondiente.
+
+| Red | chainId | Dirección | Explorer |
+|---|---|---|---|
+| Sepolia | `11155111` | `0x2c69e8071e842139dE4eFbc3A1597205098769aA` | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x2c69e8071e842139dE4eFbc3A1597205098769aA) |
+| Base Sepolia | `84532` | `0x73a621990B49DF359158100adF6E00F81ACDbfd3` | [sepolia.basescan.org](https://sepolia.basescan.org/address/0x73a621990B49DF359158100adF6E00F81ACDbfd3) |
+
+El mapping vive en [`dapp/lib/contracts.ts`](./dapp/lib/contracts.ts). Para agregar una red nueva: deployar el contrato + agregar la entrada al mapping + agregar el chain a `dapp/lib/wagmi.ts`.
+
+---
+
+## Cómo probar la dApp deployada
+
+1. Entrá a https://document-sign-storage.vercel.app/.
+2. Click en **Connect Wallet** (RainbowKit ofrece MetaMask, Rainbow, Coinbase, WalletConnect, etc.).
+3. Asegurate de estar en **Sepolia** o **Base Sepolia**. Si no tenés ETH de testnet, conseguilo gratis:
+   - Sepolia: https://www.alchemy.com/faucets/ethereum-sepolia
+   - Base Sepolia: https://www.alchemy.com/faucets/base-sepolia
+4. Tab **Subir y firmar** → subí cualquier archivo → click **Firmar y registrar on-chain** → confirmá la firma en la wallet → confirmá la transacción.
+5. Tab **Verificar** → resubí el mismo archivo → "Documento auténtico ✓" + signer + fecha.
+6. Tab **Historial** → tu documento aparece en la tabla.
+7. **Probá modificar el archivo** (renombrar un byte) y subilo en Verificar → "Documento no registrado".
+
+Switch entre Sepolia y Base Sepolia desde el icono de red de RainbowKit — el badge en el header refleja la chain activa.
+
+---
+
+## Setup local
+
+Prerrequisitos: Node 20+, [Foundry](https://book.getfoundry.sh/getting-started/installation), git.
 
 ```bash
+git clone https://github.com/<tu-user>/documentSignStorage
+cd documentSignStorage
+
 # Smart contracts
 cd sc
-forge install     # baja forge-std
+forge install   # baja forge-std
 
 # Frontend
 cd ../dapp
 npm install
-cp .env.local.example .env.local   # si existiera plantilla; si no, ver sección "Variables de entorno"
+cp .env.local.example .env.local   # editá NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
 ```
 
-## Correr la dApp (3 terminales)
+### Variables de entorno
 
-El orden importa: cada paso depende del anterior.
-
-### Terminal 1 — nodo Ethereum local
+**`dapp/.env.local`:**
 
 ```bash
-anvil
+# Project ID de Reown (antes WalletConnect Cloud) — gratis en https://cloud.reown.com
+# Es público (NEXT_PUBLIC_*) — RainbowKit lo necesita en el cliente para
+# armar el modal de wallets móviles vía QR.
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=tu_project_id
 ```
 
-Queda corriendo en `http://localhost:8545` con 10 wallets pre-cargadas (10000 ETH cada una).
+> Las direcciones de los contratos NO van en env vars — están en `dapp/lib/contracts.ts`. Los RPC son los públicos por default de wagmi (vía `http()` sin URL en `dapp/lib/wagmi.ts`).
 
-### Terminal 2 — deployar el contrato
+**`sc/.env`** (solo si vas a deployar/verificar contratos):
 
 ```bash
-cd sc
-forge script script/Deploy.s.sol \
-  --rpc-url http://localhost:8545 \
-  --broadcast \
-  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/TU_ALCHEMY_KEY
+BASE_SEPOLIA_RPC_URL=https://base-sepolia.g.alchemy.com/v2/TU_ALCHEMY_KEY
+PRIVATE_KEY=0x...                    # cuenta con ETH de testnet
+ETHERSCAN_API_KEY=TU_ETHERSCAN_KEY   # opcional, para verificar en explorer
 ```
 
-> La private key es la cuenta `[0]` por defecto de Anvil — es **pública y conocida**, no es un secreto.
-
-La address del contrato deployado queda en `sc/broadcast/Deploy.s.sol/31337/run-latest.json` bajo el campo `contractAddress`. Como Anvil es determinístico, siempre será:
-
-```
-0x5FbDB2315678afecb367f032d93F642f64180aa3
-```
-
-Esa misma address está pre-cargada en `dapp/.env.local` como `NEXT_PUBLIC_CONTRACT_ADDRESS`. Solo hay que cambiarla si modificás el orden de las transacciones de despliegue.
-
-### Terminal 3 — frontend
+### Correr el frontend en local apuntando a testnet
 
 ```bash
 cd dapp
 npm run dev
 ```
 
-Abre `http://localhost:3000`.
+Abre `http://localhost:3000`. Mismo flujo que la versión en Vercel — usa los contratos en Sepolia/Base Sepolia.
 
-## Variables de entorno (`dapp/.env.local`)
+---
 
-```
-NEXT_PUBLIC_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
-NEXT_PUBLIC_RPC_URL=http://localhost:8545
-NEXT_PUBLIC_CHAIN_ID=31337
-NEXT_PUBLIC_MNEMONIC="test test test test test test test test test test test junk"
-```
-
-Todas son `NEXT_PUBLIC_*` porque las consume el cliente. El mnemonic es el default público de Anvil.
-
-## Flujo de prueba en el browser
-
-1. Seleccioná una wallet del dropdown (cualquiera de las 10).
-2. Tab **Upload & Sign** → subí cualquier archivo (PDF, imagen, lo que sea).
-3. Esperá un instante a que calcule `keccak256`.
-4. Click en **Firmar y registrar on-chain**. La firma es instantánea (no abre popups).
-5. Tab **History** → tu documento aparece en la tabla.
-6. Tab **Verify** → subí el **mismo archivo** otra vez → "Documento auténtico", muestra quién lo firmó.
-7. **Probá modificar el archivo** (renombrá un byte) y subílo en Verify → "Documento no registrado".
-
-## Detener la ejecución
-
-### Forma manual (recomendada en cada terminal)
-
-`Ctrl+C` en cada una de las 3 terminales.
-
-### Forma rápida desde otra terminal
-
-```bash
-# Mata Anvil + dev server de Next con un solo comando
-kill $(pgrep -f anvil) $(pgrep -f "next dev") 2>/dev/null
-
-# O más violento:
-pkill -f anvil
-pkill -f "next dev"
-```
-
-### Reiniciar todo desde cero
-
-Anvil arranca con estado vacío, así que cada vez que lo bajás y volvés a levantar:
-
-1. `anvil` (Terminal 1)
-2. Redeployar el contrato (Terminal 2)
-3. `npm run dev` no necesita reiniciar — sigue funcionando con el dev server abierto.
-
-Solo si la address del contrato cambió (caso raro porque Anvil es determinístico), hay que actualizar `dapp/.env.local` y reiniciar `npm run dev`.
-
-## Comandos útiles
+## Comandos clave
 
 ### Smart contracts (`sc/`)
 
 ```bash
-forge build                      # Compilar
-forge test -vv                   # Tests con logs (objetivo: 11/11)
-forge test --match-test <name>   # Correr un test individual
-forge coverage                   # Cobertura (objetivo: >80%)
-forge clean                      # Limpiar cache/ y out/
-```
-
-### Verificación on-chain con `cast`
-
-```bash
-# ¿Cuántos documentos registrados?
-cast call 0x5FbDB2315678afecb367f032d93F642f64180aa3 \
-  "getDocumentCount()(uint256)" \
-  --rpc-url http://localhost:8545
-
-# ¿Existe este hash?
-cast call 0x5FbDB2315678afecb367f032d93F642f64180aa3 \
-  "isDocumentStored(bytes32)(bool)" 0x<hash> \
-  --rpc-url http://localhost:8545
+forge build                          # Compilar
+forge test -vv                       # Tests con logs (objetivo: 11/11)
+forge test --match-test <name>       # Correr un test individual
+forge coverage                       # Cobertura
+forge clean                          # Limpiar cache/ y out/
 ```
 
 ### Frontend (`dapp/`)
 
 ```bash
 npm run dev      # development server (http://localhost:3000)
-npm run build    # production build
+npm run build    # production build (lo mismo que corre Vercel)
 npm run lint     # ESLint
-npx tsc --noEmit # type check sin emitir archivos
 ```
 
-## Estudiar el código
+### Inspeccionar contratos con `cast`
 
-Para repasar el proyecto pieza por pieza, ver [`WALKTHROUGH.md`](./WALKTHROUGH.md).
+```bash
+# Cantidad de documentos en Sepolia
+cast call 0x2c69e8071e842139dE4eFbc3A1597205098769aA \
+  "getDocumentCount()(uint256)" \
+  --rpc-url https://ethereum-sepolia-rpc.publicnode.com
+
+# Existe este hash en Base Sepolia?
+cast call 0x73a621990B49DF359158100adF6E00F81ACDbfd3 \
+  "isDocumentStored(bytes32)(bool)" 0x<hash> \
+  --rpc-url https://base-sepolia-rpc.publicnode.com
+```
+
+---
+
+## Deploy
+
+### Smart contracts a una nueva red
+
+Desde `sc/`, con `.env` configurado:
+
+```bash
+# Sepolia
+forge script script/Deploy.s.sol \
+  --rpc-url sepolia \
+  --broadcast \
+  --verify
+
+# Base Sepolia
+forge script script/Deploy.s.sol \
+  --rpc-url base_sepolia \
+  --broadcast \
+  --verify
+```
+
+Las claves `sepolia` y `base_sepolia` vienen de `[rpc_endpoints]` en `foundry.toml`. La address deployada queda en `sc/broadcast/Deploy.s.sol/<chainId>/run-latest.json`.
+
+Pegá esa dirección en `dapp/lib/contracts.ts` bajo el chainId correspondiente.
+
+### Frontend a Vercel
+
+Vercel está conectado al repo. Cualquier `git push origin testnet` dispara un redeploy a producción automáticamente. Para deployar tu propio fork:
+
+1. Importá el repo en [vercel.com/new](https://vercel.com/new).
+2. **Root Directory: `dapp`** (es monorepo).
+3. **Production Branch: `testnet`** (Settings → Environments).
+4. Pegá `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` en Settings → Environment Variables.
+5. Deploy.
+
+---
 
 ## Decisiones de diseño no obvias
 
-Documentadas en [`CLAUDE.md`](./CLAUDE.md). En resumen:
+Documentadas en detalle en [`CLAUDE.md`](./CLAUDE.md). Resumen:
 
-1. El struct `Document` **no tiene flag `exists`**. Se infiere por `signer != address(0)` (ahorra ~39% de gas en storage).
-2. El frontend **deriva wallets del mnemonic**, no integra MetaMask. El nombre `MetaMaskContext` es histórico.
-3. El provider es `JsonRpcProvider`, no `BrowserProvider` — la dApp funciona sin extensión, pero las private keys viven en el contexto del frontend (aceptable solo porque el target es Anvil local).
-4. El mnemonic por defecto (`"test test test test test test test test test test test junk"`) es el público de Anvil. No es un secreto.
+1. **El struct `Document` no tiene flag `bool exists`**. La existencia se infiere de `documents[hash].signer != address(0)`. Ahorra ~39% de gas en storage.
+2. **El frontend usa wagmi + viem, no ethers**. El connect wallet va por RainbowKit (que internamente usa EIP-6963). No hay private keys en el cliente.
+3. **Los RPC son públicos** (`http()` sin URL). Adecuado para testnet con tráfico bajo. Para producción real conviene Alchemy/Infura por rate limits.
+4. **Las direcciones de los contratos están hardcoded** en `lib/contracts.ts`, no en env vars. Razón: cambiar de chain no debería requerir redeploy del frontend.
+5. **`storeDocumentHash` no verifica la firma on-chain** — la verificación se hace en `verifyDocument`. Trade-off: el contrato persiste, el verificador valida (ahorra gas en el path crítico).
+
+---
+
+## Estudiar el código
+
+Ver [`WALKTHROUGH.md`](./WALKTHROUGH.md) — recorrido pieza por pieza pensado para repasar después de haber construido el proyecto.
 
 ## Licencia
 
