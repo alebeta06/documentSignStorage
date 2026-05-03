@@ -63,7 +63,7 @@ El mapping vive en [`dapp/lib/contracts.ts`](./dapp/lib/contracts.ts). Para agre
 3. Asegurate de estar en **Sepolia** o **Base Sepolia**. Si no tenés ETH de testnet, conseguilo gratis:
    - Sepolia: https://www.alchemy.com/faucets/ethereum-sepolia
    - Base Sepolia: https://www.alchemy.com/faucets/base-sepolia
-4. Tab **Subir y firmar** → subí cualquier archivo → click **Firmar y registrar on-chain** → confirmá la firma en la wallet → confirmá la transacción.
+4. Tab **Subir y firmar** → subí cualquier archivo → click **Firmar y registrar on-chain** → revisá el preview en el modal de confirmación y click **Sí, firmar** → confirmá la firma en la wallet.
 5. Tab **Verificar** → resubí el mismo archivo → "Documento auténtico ✓" + signer + fecha.
 6. Tab **Historial** → tu documento aparece en la tabla.
 7. **Probá modificar el archivo** (renombrar un byte) y subilo en Verificar → "Documento no registrado".

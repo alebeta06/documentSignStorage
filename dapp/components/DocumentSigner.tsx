@@ -1,11 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { useAccount, useSignMessage } from "wagmi";
+import { useAccount, useChains, useSignMessage } from "wagmi";
 import { BaseError, UserRejectedRequestError } from "viem";
 import { toast } from "sonner";
 import { useContract } from "@/hooks/useContract";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { getTxExplorer } from "@/lib/explorers";
 import type { FileWithHash } from "./FileUploader";
 
@@ -24,9 +33,16 @@ function parseError(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function DocumentSigner({ fileWithHash }: Props) {
   const { isConnected, address } = useAccount();
   const { signMessageAsync } = useSignMessage();
+  const chains = useChains();
   const {
     storeDocumentHash,
     isDocumentStored,
@@ -34,6 +50,7 @@ export function DocumentSigner({ fileWithHash }: Props) {
     chainId,
   } = useContract();
   const [busy, setBusy] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [signedInfo, setSignedInfo] = useState<{
     hash: string;
     signer: string;
@@ -53,6 +70,13 @@ export function DocumentSigner({ fileWithHash }: Props) {
 
   const disabled =
     !fileWithHash || !isConnected || noContractOnThisChain || busy;
+
+  const currentChain = chains.find((c) => c.id === chainId);
+
+  async function handleConfirm() {
+    setDialogOpen(false);
+    await handleSign();
+  }
 
   async function handleSign() {
     if (!fileWithHash || !address) return;
@@ -131,10 +155,69 @@ export function DocumentSigner({ fileWithHash }: Props) {
           </dl>
         </div>
       ) : (
-        <Button onClick={handleSign} disabled={disabled} size="default">
+        <Button
+          onClick={() => setDialogOpen(true)}
+          disabled={disabled}
+          size="default"
+        >
           {busy ? "Procesando..." : "Firmar y registrar on-chain"}
         </Button>
       )}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar firma</DialogTitle>
+            <DialogDescription>
+              Vas a registrar este documento on-chain. La operación no se puede
+              deshacer.
+            </DialogDescription>
+          </DialogHeader>
+
+          {fileWithHash && (
+            <dl className="space-y-3 text-sm">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Archivo
+                </dt>
+                <dd className="font-medium mt-1 break-all">
+                  {fileWithHash.file.name}{" "}
+                  <span className="text-muted-foreground font-normal">
+                    ({formatBytes(fileWithHash.file.size)})
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Hash (keccak256)
+                </dt>
+                <dd className="font-mono text-xs break-all mt-1">
+                  {fileWithHash.hash}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Red
+                </dt>
+                <dd className="font-medium mt-1">
+                  {currentChain?.name ?? `chainId ${chainId}`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Firmando como
+                </dt>
+                <dd className="font-mono text-xs break-all mt-1">{address}</dd>
+              </div>
+            </dl>
+          )}
+
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline">Cancelar</Button>} />
+            <Button onClick={handleConfirm}>Sí, firmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {!isConnected && (
         <p className="text-xs text-amber-600 dark:text-amber-400">

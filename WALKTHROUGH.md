@@ -473,9 +473,33 @@ const computedHash = keccak256(bytes);
 - Costo: subir 32 bytes vs subir 5 MB es la diferencia entre $0.001 y $50.000 (en mainnet).
 - Si cambiás un solo bit del archivo, el hash cambia completamente (avalanche effect del hash).
 
-### 6.2. `DocumentSigner` — toasts + parseError + bytes vs string
+### 6.2. `DocumentSigner` — Dialog de pre-firma + toasts + parseError + bytes vs string
 
-El feedback de transacción ya no vive en `<div>` inline — ahora se modela con **toasts de Sonner**. Un solo `toastId` que muta sus mensajes en cascada:
+**Confirmación previa (Dialog modal)**: antes de disparar el popup de la wallet, mostramos un Dialog con el resumen de lo que está por firmarse — nombre del archivo, tamaño, hash completo, red activa y address del signer. El usuario puede cancelar o confirmar.
+
+```tsx
+<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Confirmar firma</DialogTitle>
+      <DialogDescription>
+        Vas a registrar este documento on-chain. La operación no se puede deshacer.
+      </DialogDescription>
+    </DialogHeader>
+    <dl>{/* archivo, hash, red, signer */}</dl>
+    <DialogFooter>
+      <DialogClose render={<Button variant="outline">Cancelar</Button>} />
+      <Button onClick={handleConfirm}>Sí, firmar</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+```
+
+Por qué importa: el popup de la wallet es chico y técnico (`Sign message: 0x4f2a…`). Un usuario que firma un documento legal o un diploma necesita pausar y revisar el contexto antes de comprometerse. Es el patrón estándar en dApps de DeFi (Uniswap, Aave): siempre hay un "Confirm" en la dApp **antes** del popup de la wallet.
+
+Detalle de implementación: el Dialog es **controlado** con `open` + `onOpenChange`. El Button de "Firmar y registrar" abre el modal (`setDialogOpen(true)`); no llama a `handleSign` directo. La acción real se dispara desde el Button "Sí, firmar" del DialogFooter.
+
+**Feedback de transacción con toasts de Sonner**. Un solo `toastId` que muta sus mensajes en cascada:
 
 ```tsx
 const toastId = toast.loading("Firmá con tu wallet...");
