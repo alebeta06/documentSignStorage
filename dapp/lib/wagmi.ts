@@ -1,4 +1,4 @@
-import { http } from "wagmi";
+import { fallback, http } from "viem";
 import { sepolia, baseSepolia } from "wagmi/chains";
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 
@@ -12,6 +12,29 @@ if (!projectId) {
   );
 }
 
+// RPCs opcionales del usuario (Alchemy, Infura, QuickNode, etc.). Si estan
+// definidos, son los primeros en el fallback. Sino, usamos solo los publicos.
+const userSepoliaRpc = process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL;
+const userBaseSepoliaRpc = process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL;
+
+// fallback() prueba en orden: si el primer transport falla (timeout, 429, 5xx),
+// pasa al siguiente. Esencial cuando dependes de RPCs publicos porque
+// estos rate-limitean agresivo cuando haces varias calls seguidas
+// (read pre-check + write + waitForReceipt = 10+ requests por firma).
+const sepoliaTransports = [
+  ...(userSepoliaRpc ? [http(userSepoliaRpc)] : []),
+  http("https://ethereum-sepolia-rpc.publicnode.com"),
+  http("https://sepolia.gateway.tenderly.co"),
+  http("https://eth-sepolia.public.blastapi.io"),
+];
+
+const baseSepoliaTransports = [
+  ...(userBaseSepoliaRpc ? [http(userBaseSepoliaRpc)] : []),
+  http("https://base-sepolia-rpc.publicnode.com"),
+  http("https://sepolia.base.org"),
+  http("https://base-sepolia.gateway.tenderly.co"),
+];
+
 // getDefaultConfig (RainbowKit) arma una wagmi config con los connectors
 // estandar (injected/MetaMask, WalletConnect, Coinbase, Rainbow). Lo
 // preferimos sobre createConfig porque la lista curada cubre el 95% de
@@ -24,10 +47,7 @@ export const config = getDefaultConfig({
   // ajusta cookies/persistencia para no romper la hidratacion.
   ssr: true,
   transports: {
-    // http() sin URL usa el RPC publico por default de cada chain
-    // (suficiente para el uso de amigos en testnet). Si en el futuro
-    // queremos Alchemy/Infura para mejor rate-limit, pasar la URL aqui.
-    [sepolia.id]: http(),
-    [baseSepolia.id]: http(),
+    [sepolia.id]: fallback(sepoliaTransports),
+    [baseSepolia.id]: fallback(baseSepoliaTransports),
   },
 });

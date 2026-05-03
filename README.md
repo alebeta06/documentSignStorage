@@ -95,13 +95,19 @@ cp .env.local.example .env.local   # editá NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
 **`dapp/.env.local`:**
 
 ```bash
-# Project ID de Reown (antes WalletConnect Cloud) — gratis en https://cloud.reown.com
-# Es público (NEXT_PUBLIC_*) — RainbowKit lo necesita en el cliente para
-# armar el modal de wallets móviles vía QR.
+# Obligatorio — Project ID de Reown (antes WalletConnect Cloud).
+# Gratis en https://cloud.reown.com.
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=tu_project_id
+
+# Opcional — tu RPC propio de Alchemy / Infura / QuickNode.
+# Si lo dejás vacío, la dApp usa fallback entre RPCs públicos
+# (publicnode.com, tenderly, blastapi). Recomendado setear el tuyo
+# si el flujo de firma falla con "Request is being rate limited".
+NEXT_PUBLIC_SEPOLIA_RPC_URL=
+NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL=
 ```
 
-> Las direcciones de los contratos NO van en env vars — están en `dapp/lib/contracts.ts`. Los RPC son los públicos por default de wagmi (vía `http()` sin URL en `dapp/lib/wagmi.ts`).
+> Las direcciones de los contratos NO van en env vars — están en `dapp/lib/contracts.ts`.
 
 **`sc/.env`** (solo si vas a deployar/verificar contratos):
 
