@@ -18,9 +18,21 @@ import {
 import { getTxExplorer } from "@/lib/explorers";
 import type { FileWithHash } from "./FileUploader";
 
+export interface SignedInfo {
+  hash: string;
+  signer: string;
+  timestamp: bigint;
+}
+
 interface Props {
   /** Archivo + hash producido por FileUploader. Null cuando no hay archivo aun. */
   fileWithHash: FileWithHash | null;
+  /** Info del ultimo documento firmado exitosamente. Vive en el padre para
+   *  sobrevivir el unmount al cambiar de tab. Null antes de cualquier firma. */
+  signedInfo: SignedInfo | null;
+  /** Callback que el padre usa para guardar la info del firmado, limpiar el
+   *  FileUploader (via key change) y resetear fileToSign. */
+  onSigned: (info: SignedInfo) => void;
 }
 
 function parseError(e: unknown): string {
@@ -39,7 +51,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function DocumentSigner({ fileWithHash }: Props) {
+export function DocumentSigner({ fileWithHash, signedInfo, onSigned }: Props) {
   const { isConnected, address } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const chains = useChains();
@@ -51,19 +63,6 @@ export function DocumentSigner({ fileWithHash }: Props) {
   } = useContract();
   const [busy, setBusy] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [signedInfo, setSignedInfo] = useState<{
-    hash: string;
-    signer: string;
-    timestamp: bigint;
-  } | null>(null);
-
-  const [prevHash, setPrevHash] = useState<string | null>(null);
-
-  const currentHash = fileWithHash?.hash ?? null;
-  if (currentHash !== prevHash) {
-    setPrevHash(currentHash);
-    setSignedInfo(null);
-  }
 
   // El user puede estar conectado a una red sin DocumentRegistry deployado.
   const noContractOnThisChain = isConnected && !contractAddress;
@@ -106,7 +105,7 @@ export function DocumentSigner({ fileWithHash }: Props) {
         signer: address,
       });
 
-      setSignedInfo({
+      onSigned({
         hash: fileWithHash.hash,
         signer: address,
         timestamp,
@@ -132,7 +131,7 @@ export function DocumentSigner({ fileWithHash }: Props) {
 
   return (
     <div className="space-y-3 mt-4">
-      {signedInfo ? (
+      {signedInfo && (
         <div className="text-sm bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 p-4 rounded-md space-y-2">
           <div className="font-semibold text-green-800 dark:text-green-300">
             ✓ Documento registrado exitosamente
@@ -154,15 +153,15 @@ export function DocumentSigner({ fileWithHash }: Props) {
             </div>
           </dl>
         </div>
-      ) : (
-        <Button
-          onClick={() => setDialogOpen(true)}
-          disabled={disabled}
-          size="default"
-        >
-          {busy ? "Procesando..." : "Firmar y registrar on-chain"}
-        </Button>
       )}
+
+      <Button
+        onClick={() => setDialogOpen(true)}
+        disabled={disabled}
+        size="default"
+      >
+        {busy ? "Procesando..." : "Firmar y registrar on-chain"}
+      </Button>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
@@ -232,7 +231,7 @@ export function DocumentSigner({ fileWithHash }: Props) {
         </p>
       )}
 
-      {!fileWithHash && isConnected && !noContractOnThisChain && (
+      {!fileWithHash && isConnected && !noContractOnThisChain && !signedInfo && (
         <p className="text-xs text-muted-foreground">Subí un archivo primero.</p>
       )}
     </div>

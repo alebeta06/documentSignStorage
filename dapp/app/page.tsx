@@ -14,7 +14,10 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { FileUploader, type FileWithHash } from "@/components/FileUploader";
-import { DocumentSigner } from "@/components/DocumentSigner";
+import {
+  DocumentSigner,
+  type SignedInfo,
+} from "@/components/DocumentSigner";
 import { DocumentVerifier } from "@/components/DocumentVerifier";
 import { DocumentHistory } from "@/components/DocumentHistory";
 import { ChainBadge } from "@/components/ChainBadge";
@@ -28,6 +31,28 @@ export default function Home() {
   // El estado del archivo a firmar vive aqui (en el padre) para que
   // FileUploader y DocumentSigner compartan la misma info.
   const [fileToSign, setFileToSign] = useState<FileWithHash | null>(null);
+
+  // signedInfo tambien vive aqui — asi sobrevive el unmount de DocumentSigner
+  // cuando el usuario cambia de tab. Antes vivia local en DocumentSigner y
+  // se perdia al cambiar de tab dejando "fileToSign" huerfano.
+  const [signedInfo, setSignedInfo] = useState<SignedInfo | null>(null);
+
+  // Key para forzar el remount del <FileUploader>. El <input type="file"> no
+  // se puede limpiar programaticamente (security restriction del browser);
+  // remontarlo es la unica forma confiable de resetearlo.
+  const [uploaderKey, setUploaderKey] = useState(0);
+
+  function handleFileHashed(data: FileWithHash | null) {
+    setFileToSign(data);
+    // Subir un archivo nuevo invalida la card de "registrado" anterior.
+    if (data) setSignedInfo(null);
+  }
+
+  function handleSigned(info: SignedInfo) {
+    setSignedInfo(info);
+    setFileToSign(null);
+    setUploaderKey((k) => k + 1);
+  }
 
   return (
     <div className="flex flex-col flex-1 bg-background font-sans">
@@ -66,8 +91,12 @@ export default function Home() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <FileUploader onFileHashed={setFileToSign} />
-                <DocumentSigner fileWithHash={fileToSign} />
+                <FileUploader key={uploaderKey} onFileHashed={handleFileHashed} />
+                <DocumentSigner
+                  fileWithHash={fileToSign}
+                  signedInfo={signedInfo}
+                  onSigned={handleSigned}
+                />
               </CardContent>
             </Card>
           </TabsContent>
