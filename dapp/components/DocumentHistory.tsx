@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useChainId } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import { useContract, type DocumentInfo } from "@/hooks/useContract";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +10,7 @@ const SKELETON_ROWS = 3;
 
 export function DocumentHistory() {
   const chainId = useChainId();
+  const { isConnected } = useAccount();
   const {
     getDocumentCount,
     getDocumentHashByIndex,
@@ -52,12 +53,23 @@ export function DocumentHistory() {
   // causaria loops. Su efecto siempre apunta al contrato actual.
 
   useEffect(() => {
-    if (!contractAddress) return;
+    if (!contractAddress || !isConnected) return;
     // queueMicrotask defiere `load` un tick — evita la regla
     // react-hooks/set-state-in-effect (React 19) que prohibe llamar setState
     // sincronicamente en el cuerpo del effect.
     queueMicrotask(load);
-  }, [load, contractAddress]);
+  }, [load, contractAddress, isConnected]);
+
+  if (!isConnected) {
+    return (
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">Historial on-chain</h3>
+        <p className="text-sm text-muted-foreground">
+          Conectá una billetera para ver el historial de documentos.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
