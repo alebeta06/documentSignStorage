@@ -1,5 +1,9 @@
 # Document Sign Storage
 
+<div align="center">
+  <img src="./assets/app-screenshot.png" alt="Document Sign Storage App Interface" width="800" />
+</div>
+
 dApp educativa (curso **CODECRYPTO**) para almacenar y verificar la autenticidad de documentos sobre Ethereum.
 
 El usuario sube un archivo, el frontend calcula su `keccak256`, lo firma con una wallet (ECDSA) y persiste `hash + signature + timestamp + signer` on-chain. Cualquier persona puede luego volver a subir el mismo archivo y comparar el hash on-chain para verificar que no fue alterado y quién lo firmó.
