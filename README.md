@@ -29,6 +29,10 @@ El patrón "registrar el hash de un documento on-chain + firmar con ECDSA" sirve
 
 ## Stack
 
+<div align="center">
+  <img src="./assets/mindmap.png" alt="Arquitectura del proyecto Document Sign Storage" width="800" />
+</div>
+
 | Capa | Tecnología |
 |---|---|
 | Smart contract | Solidity ^0.8.20, Foundry (forge + cast) |
