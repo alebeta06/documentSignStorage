@@ -12,6 +12,23 @@ El usuario sube un archivo, el frontend calcula su `keccak256`, lo firma con una
 
 ---
 
+## 🎥 Video de Demostración
+
+Para ver la dApp en acción y comprender todo el flujo de trabajo de firma y verificación paso a paso, puedes ver la demostración completa en video:
+
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=JViYTTo-3Vg" target="_blank">
+    <img src="https://img.youtube.com/vi/JViYTTo-3Vg/maxresdefault.jpg" alt="Demostración de Document Sign Storage" width="700" />
+  </a>
+  <br/>
+  <br/>
+  <a href="https://www.youtube.com/watch?v=JViYTTo-3Vg" target="_blank">
+    <img src="https://img.shields.io/badge/Ver_Video_en_YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Ver Video en YouTube" />
+  </a>
+</div>
+
+---
+
 ## Casos de uso reales
 
 El patrón "registrar el hash de un documento on-chain + firmar con ECDSA" sirve para cualquier escenario donde necesitás **probar que algo existió en un momento específico, sin revelar su contenido**. Ejemplos concretos:
